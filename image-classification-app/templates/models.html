@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Models{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1><i class="fas fa-brain"></i> Model Management</h1>
+        <p>Load, upload, and manage detection models</p>
+    </div>
+    
+    <!-- Upload Model -->
+    <div class="card">
+        <h2>Upload New Model</h2>
+        <form method="POST" action="{{ url_for('upload_model') }}" enctype="multipart/form-data">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Model File (.h5, .keras)</label>
+                    <input type="file" name="model_file" accept=".h5,.keras,.hdf5" required>
+                </div>
+                <div class="form-group">
+                    <label>Labels File (.json) - Optional</label>
+                    <input type="file" name="labels_file" accept=".json">
+                    <small>If not provided, default labels will be created</small>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-upload"></i> Upload Model
+            </button>
+        </form>
+    </div>
+    
+    <!-- Available Models -->
+    <div class="card">
+        <h2>Available Models</h2>
+        
+        {% if models %}
+        <div class="models-grid">
+            {% for model in models %}
+            <div class="model-card">
+                <div class="model-icon">
+                    <i class="fas fa-brain" style="font-size: 2em; color: var(--primary);"></i>
+                </div>
+                <h3>{{ model.name }}</h3>
+                <div class="model-info">
+                    <p><i class="fas fa-weight-hanging"></i> Size: {{ "%.1f"|format(model.size / 1024 / 1024) }} MB</p>
+                    <p><i class="fas fa-clock"></i> Modified: {{ model.modified }}</p>
+                </div>
+                <div class="model-actions">
+                    <form method="POST" action="{{ url_for('load_model') }}" style="flex: 1;">
+                        <input type="hidden" name="model_name" value="{{ model.name }}">
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-check-circle"></i> 
+                            {% if detector_loaded and detector_info.model_path == model.path %}
+                                Reload Model
+                            {% else %}
+                                Load Model
+                            {% endif %}
+                        </button>
+                    </form>
+                </div>
+                
+                {% if detector_loaded and detector_info.model_path == model.path %}
+                <div class="badge badge-success" style="margin-top: 10px;">
+                    <i class="fas fa-check"></i> Currently Active
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-brain" style="font-size: 64px;"></i>
+            <p>No models available</p>
+            <p>Upload a trained model to get started</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

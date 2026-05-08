@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Single Image Detection{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1><i class="fas fa-image"></i> Single Image Detection</h1>
+        <p>Upload an image for fire and smoke analysis</p>
+    </div>
+    
+    <div class="content-grid">
+        <!-- Upload Form -->
+        <div class="card">
+            <h2>Upload Image</h2>
+            <form method="POST" enctype="multipart/form-data" class="upload-form">
+                <div class="form-group">
+                    <label for="image">
+                        <i class="fas fa-cloud-upload-alt"></i> Select Image
+                    </label>
+                    <input type="file" id="image" name="image" accept="image/*" required>
+                    <div class="file-preview" id="filePreview">
+                        <i class="fas fa-image" style="font-size: 48px;"></i>
+                        <p>No image selected</p>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="threshold">
+                            <i class="fas fa-sliders-h"></i> Confidence Threshold
+                        </label>
+                        <input type="range" id="threshold" name="threshold" 
+                               min="0" max="1" step="0.05" value="0.5"
+                               oninput="document.getElementById('thresholdValue').textContent = (this.value * 100).toFixed(0) + '%'">
+                        <span id="thresholdValue">50%</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="augment">
+                        <span>Apply Test-Time Augmentation</span>
+                    </label>
+                    <small>Improves accuracy but slower processing</small>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-search"></i> Analyze Image
+                </button>
+            </form>
+        </div>
+        
+        <!-- Results -->
+        <div class="card">
+            <h2>Results</h2>
+            {% if result %}
+            <div class="result-container">
+                {% if image_data %}
+                <div class="result-image">
+                    <img src="data:image/jpeg;base64,{{ image_data }}" alt="Analyzed image">
+                </div>
+                {% endif %}
+                
+                <div class="result-details">
+                    <div class="result-prediction 
+                        {% if result.predicted_class == 'fire' %}prediction-fire
+                        {% elif result.predicted_class == 'smoke' %}prediction-smoke
+                        {% elif result.predicted_class == 'non_fire' %}prediction-safe
+                        {% else %}prediction-uncertain{% endif %}">
+                        <h3>{{ result.predicted_class.upper() }}</h3>
+                        <div class="confidence-circle" 
+                             style="--confidence: {{ result.confidence * 100 }}%;">
+                            <span>{{ "%.1f"|format(result.confidence * 100) }}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="probabilities">
+                        <h4>Class Probabilities</h4>
+                        {% for class_name, prob in result.probabilities.items() %}
+                        <div class="prob-bar">
+                            <span class="prob-label">{{ class_name }}</span>
+                            <div class="prob-track">
+                                <div class="prob-fill" style="width: {{ prob * 100 }}%;"></div>
+                            </div>
+                            <span class="prob-value">{{ "%.1f"|format(prob * 100) }}%</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="result-meta">
+                        <p><i class="fas fa-clock"></i> Inference Time: {{ "%.3f"|format(result.inference_time) }}s</p>
+                        <p><i class="fas fa-file"></i> File: {{ result.file }}</p>
+                        <p><i class="fas fa-check-circle"></i> Above Threshold: {{ 'Yes' if result.above_threshold else 'No' }}</p>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-image" style="font-size: 64px;"></i>
+                <p>Upload an image to see results</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('filePreview');
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
+{% endblock %}

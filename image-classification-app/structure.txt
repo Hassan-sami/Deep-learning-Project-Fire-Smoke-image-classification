@@ -1,0 +1,36 @@
+forest-fire-detection-web/
+├── app.py
+├── config.py
+├── requirements.txt
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── main.js
+├── templates/
+│   ├── base.html
+│   ├── index.html
+│   ├── single_image.html
+│   ├── batch_image.html
+│   ├── video.html
+│   ├── webcam.html
+│   ├── results.html
+│   └── report.html
+├── detectors/
+│   ├── __init__.py
+│   ├── detector.py
+│   ├── preprocessor.py
+│   └── utils.py
+├── services/
+│   ├── __init__.py
+│   ├── email_service.py
+│   ├── report_service.py
+│   └── logger_service.py
+├── models/
+│   └── (upload models here)
+├── uploads/
+│   ├── images/
+│   ├── videos/
+│   └── temp/
+├── logs/
+└── outputs/

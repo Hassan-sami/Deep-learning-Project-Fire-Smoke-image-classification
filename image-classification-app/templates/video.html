@@ -1,0 +1,406 @@
+{% extends "base.html" %}
+
+{% block title %}Video Processing - Forest Fire Detection{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1><i class="fas fa-video"></i> Video Processing</h1>
+        <p>Analyze video footage for fire and smoke detection</p>
+    </div>
+    
+    <div class="content-grid">
+        <!-- Upload Form -->
+        <div class="card">
+            <h2><i class="fas fa-upload"></i> Upload Video</h2>
+            <form method="POST" enctype="multipart/form-data" class="upload-form">
+                <div class="form-group">
+                    <label for="video">
+                        <i class="fas fa-cloud-upload-alt"></i> Select Video File
+                    </label>
+                    <input type="file" id="video" name="video" 
+                           accept="video/*,.mp4,.avi,.mov,.mkv,.webm" required>
+                    <div class="file-preview" id="videoPreview">
+                        <i class="fas fa-video" style="font-size: 48px;"></i>
+                        <p>No video selected</p>
+                    </div>
+                    <small class="form-text">
+                        Supported formats: MP4, AVI, MOV, MKV, WebM<br>
+                        Maximum file size: 500MB
+                    </small>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="threshold">
+                            <i class="fas fa-sliders-h"></i> Confidence Threshold
+                        </label>
+                        <input type="range" id="threshold" name="threshold" 
+                               min="0" max="1" step="0.05" value="0.5"
+                               oninput="document.getElementById('thresholdValue').textContent = (this.value * 100).toFixed(0) + '%'">
+                        <span id="thresholdValue">50%</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="frame_skip">
+                            <i class="fas fa-forward"></i> Frame Skip Interval
+                        </label>
+                        <input type="number" id="frame_skip" name="frame_skip" 
+                               min="1" max="300" value="30" class="form-control">
+                        <small>Process every Nth frame (higher = faster, less accurate)</small>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-play-circle"></i> Process Video
+                </button>
+            </form>
+        </div>
+        
+        <!-- Instructions -->
+        <div class="card">
+            <h2><i class="fas fa-info-circle"></i> How It Works</h2>
+            <div class="info-list">
+                <div class="info-item">
+                    <i class="fas fa-1"></i>
+                    <p><strong>Upload</strong> your video file (forest surveillance footage recommended)</p>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-2"></i>
+                    <p><strong>Configure</strong> detection threshold and frame skip rate</p>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-3"></i>
+                    <p><strong>Process</strong> the video - we analyze frames at regular intervals</p>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-4"></i>
+                    <p><strong>Review</strong> the detection timeline and summary results</p>
+                </div>
+            </div>
+            
+            <div class="tips-box" style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 10px;">
+                <h4><i class="fas fa-lightbulb"></i> Tips</h4>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Use lower frame skip values for more thorough analysis</li>
+                    <li>Higher confidence thresholds reduce false positives</li>
+                    <li>Good lighting improves detection accuracy</li>
+                    <li>Clear, stable footage works best</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Results Section -->
+    {% if summary %}
+    <div class="results-section" style="margin-top: 30px;">
+        <div class="card">
+            <h2><i class="fas fa-chart-pie"></i> Video Analysis Summary</h2>
+            
+            <div class="stats-grid" style="margin-top: 20px;">
+                <div class="stat-card">
+                    <i class="fas fa-film" style="font-size: 1.5em; color: var(--secondary);"></i>
+                    <div class="stat-value">{{ summary.total_frames }}</div>
+                    <div class="stat-label">Total Frames</div>
+                </div>
+                
+                <div class="stat-card">
+                    <i class="fas fa-check-circle" style="font-size: 1.5em; color: var(--primary);"></i>
+                    <div class="stat-value">{{ summary.processed_frames }}</div>
+                    <div class="stat-label">Frames Processed</div>
+                </div>
+                
+                <div class="stat-card">
+                    <i class="fas fa-search" style="font-size: 1.5em; color: var(--warning);"></i>
+                    <div class="stat-value">{{ summary.detections }}</div>
+                    <div class="stat-label">Total Detections</div>
+                </div>
+                
+                <div class="stat-card">
+                    <i class="fas fa-fire" style="font-size: 1.5em; color: var(--danger);"></i>
+                    <div class="stat-value fire">{{ summary.fire_detections }}</div>
+                    <div class="stat-label">Fire Detections</div>
+                </div>
+                
+                <div class="stat-card">
+                    <i class="fas fa-smog" style="font-size: 1.5em; color: var(--warning);"></i>
+                    <div class="stat-value smoke">{{ summary.smoke_detections }}</div>
+                    <div class="stat-label">Smoke Detections</div>
+                </div>
+                
+                <div class="stat-card">
+                    <i class="fas fa-percentage" style="font-size: 1.5em; color: var(--primary);"></i>
+                    <div class="stat-value">{{ "%.1f"|format(summary.average_confidence * 100) }}%</div>
+                    <div class="stat-label">Avg Confidence</div>
+                </div>
+            </div>
+            
+            <!-- Alert Box -->
+            {% if summary.fire_detections > 0 or summary.smoke_detections > 0 %}
+            <div class="alert-box" style="background: #ffeaa7; border-left: 5px solid #fdcb6e; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <h3 style="color: #856404;">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    Warning: Fire/Smoke Detected!
+                </h3>
+                <p style="color: #856404; margin-top: 5px;">
+                    <strong>{{ summary.fire_detections }}</strong> fire detections and 
+                    <strong>{{ summary.smoke_detections }}</strong> smoke detections found in the video.
+                    {% if summary.fire_detections > 5 or summary.smoke_detections > 5 %}
+                    <br><strong style="color: #d63031;">Immediate attention recommended!</strong>
+                    {% endif %}
+                </p>
+            </div>
+            {% else %}
+            <div class="alert-box" style="background: #d4edda; border-left: 5px solid #27ae60; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <h3 style="color: #155724;">
+                    <i class="fas fa-check-circle"></i> 
+                    No Fire or Smoke Detected
+                </h3>
+                <p style="color: #155724; margin-top: 5px;">
+                    The video appears to be safe. No significant fire or smoke signatures were detected.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Detection Timeline -->
+        {% if summary.timeline and summary.timeline|length > 0 %}
+        <div class="card" style="margin-top: 20px;">
+            <h2><i class="fas fa-chart-line"></i> Detection Timeline</h2>
+            <canvas id="timelineChart" style="max-height: 300px;"></canvas>
+            
+            <div class="table-responsive" style="margin-top: 20px;">
+                <h3>All Detections</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Frame</th>
+                            <th>Timestamp (s)</th>
+                            <th>Prediction</th>
+                            <th>Confidence</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detection in summary.timeline %}
+                        <tr>
+                            <td>{{ detection.frame }}</td>
+                            <td>{{ "%.2f"|format(detection.timestamp) }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if detection.predicted_class == 'fire' %}badge-fire
+                                    {% elif detection.predicted_class == 'smoke' %}badge-smoke
+                                    {% else %}badge-safe{% endif %}">
+                                    {{ detection.predicted_class.upper() }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="mini-bar">
+                                    <div class="mini-bar-fill" style="width: {{ detection.confidence * 100 }}%;"></div>
+                                </div>
+                                <small>{{ "%.1f"|format(detection.confidence * 100) }}%</small>
+                            </td>
+                            <td>
+                                {% if detection.confidence > 0.8 %}
+                                <span class="badge badge-danger">High</span>
+                                {% elif detection.confidence > 0.6 %}
+                                <span class="badge badge-warning">Medium</span>
+                                {% else %}
+                                <span class="badge badge-safe">Low</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Video file preview
+document.getElementById('video').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('videoPreview');
+    
+    if (file) {
+        const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+        
+        // Create video preview
+        const videoURL = URL.createObjectURL(file);
+        preview.innerHTML = `
+            <video controls style="max-width: 100%; max-height: 300px; border-radius: 10px;">
+                <source src="${videoURL}" type="${file.type}">
+                Your browser does not support video preview.
+            </video>
+            <p style="margin-top: 10px;">
+                <strong>File:</strong> ${file.name}<br>
+                <strong>Size:</strong> ${fileSize} MB
+            </p>
+        `;
+    }
+});
+
+// Timeline chart
+{% if summary and summary.timeline and summary.timeline|length > 0 %}
+document.addEventListener('DOMContentLoaded', function() {
+    const timeline = {{ summary.timeline|tojson }};
+    
+    // Group detections by time segments
+    const timeData = {};
+    timeline.forEach(function(detection) {
+        const timeKey = Math.floor(detection.timestamp);
+        if (!timeData[timeKey]) {
+            timeData[timeKey] = { fire: 0, smoke: 0, other: 0 };
+        }
+        if (detection.predicted_class === 'fire') {
+            timeData[timeKey].fire++;
+        } else if (detection.predicted_class === 'smoke') {
+            timeData[timeKey].smoke++;
+        } else {
+            timeData[timeKey].other++;
+        }
+    });
+    
+    const labels = Object.keys(timeData).sort((a, b) => a - b);
+    const fireData = labels.map(t => timeData[t].fire);
+    const smokeData = labels.map(t => timeData[t].smoke);
+    
+    const ctx = document.getElementById('timelineChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels.map(t => t + 's'),
+            datasets: [
+                {
+                    label: 'Fire',
+                    data: fireData,
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Smoke',
+                    data: smokeData,
+                    borderColor: '#f39c12',
+                    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Detection Timeline (per second)'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    title: {
+                        display: true,
+                        text: 'Number of Detections'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time (seconds)'
+                    }
+                }
+            }
+        }
+    });
+});
+{% endif %}
+</script>
+
+<style>
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1em;
+}
+
+.form-text {
+    color: #7f8c8d;
+    font-size: 0.85em;
+    margin-top: 5px;
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.info-item:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.info-item i {
+    font-size: 1.2em;
+    color: var(--primary);
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.alert-box h3 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.alert-box p {
+    font-size: 0.95em;
+}
+</style>
+{% endblock %}

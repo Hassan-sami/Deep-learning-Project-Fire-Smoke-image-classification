@@ -1,0 +1,27 @@
+# ============================================
+# USAGE EXAMPLES
+# ============================================
+
+# 1. Single image prediction (text output)
+python inference.py -m fire-smoke-neutral/Fire_smoke.keras -i fire-smoke-neutral/test-imgs/image.jpg
+
+# 2. Single image with JSON output
+python inference.py -m fire-smoke-neutral/Fire_smoke.keras -i fire-smoke-neutral/test-imgs/image.jpg -f json
+
+# 3. Single image with visualization
+python inference.py -m fire-smoke-neutral/Fire_smoke.keras -i fire-smoke-neutral/test-imgs/image.jpg --visualize
+
+# 4. Multiple images
+python inference.py -m fire-smoke-neutral/Fire_smoke.keras -i fire-smoke-neutral/test-imgs/image.jpg fire-smoke-neutral/test-imgs/image1.jpg
+
+# 5. Directory of images with CSV output
+python inference.py -m fire-smoke-neutral/Fire_smoke.keras -d /path/to/images -f csv --csv-header
+
+# 6. Save results to file
+python inference.py -m fire-smoke-neutral/Fire_smoke.keras -i forest.jpg -o results.json -f json
+
+# 7. With fire/smoke alert (exits with code 2 if detected)
+python inference.py -m fire-smoke-neutral/Fire_smoke.keras -i forest.jpg --alert
+
+# 8. Quiet mode (suppress progress messages)
+python inference.py -m fire-smoke-neutral/Fire_smoke.keras -d /path/to/images --quiet

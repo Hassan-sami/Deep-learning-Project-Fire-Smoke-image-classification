@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Image Detection{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1><i class="fas fa-images"></i> Batch Image Detection</h1>
+        <p>Process multiple images simultaneously</p>
+    </div>
+    
+    <div class="card">
+        <form method="POST" enctype="multipart/form-data" class="upload-form">
+            <div class="form-group">
+                <label for="images">
+                    <i class="fas fa-cloud-upload-alt"></i> Select Images
+                </label>
+                <input type="file" id="images" name="images" accept="image/*" multiple required>
+                <div class="batch-preview" id="batchPreview">
+                    <i class="fas fa-images" style="font-size: 48px;"></i>
+                    <p>No images selected</p>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="threshold">Confidence Threshold</label>
+                    <input type="range" id="threshold" name="threshold" 
+                           min="0" max="1" step="0.05" value="0.5"
+                           oninput="document.getElementById('thresholdValue').textContent = (this.value * 100).toFixed(0) + '%'">
+                    <span id="thresholdValue">50%</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="augment">
+                    <span>Apply Test-Time Augmentation</span>
+                </label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fas fa-play-circle"></i> Process Images
+            </button>
+        </form>
+    </div>
+    
+    {% if results %}
+    <div class="results-section">
+        <div class="results-summary">
+            <div class="summary-card">
+                <i class="fas fa-images"></i>
+                <span>{{ results.total }} Total</span>
+            </div>
+            <div class="summary-card success">
+                <i class="fas fa-check-circle"></i>
+                <span>{{ results.successful }} Successful</span>
+            </div>
+            <div class="summary-card error">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{{ results.failed }} Failed</span>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Detection Results</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Prediction</th>
+                            <th>Confidence</th>
+                            <th>Time (s)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results.results %}
+                        <tr>
+                            <td><strong>{{ result.file }}</strong></td>
+                            <td>
+                                <span class="badge 
+                                    {% if result.predicted_class == 'fire' %}badge-fire
+                                    {% elif result.predicted_class == 'smoke' %}badge-smoke
+                                    {% elif result.predicted_class == 'non_fire' %}badge-safe
+                                    {% else %}badge-uncertain{% endif %}">
+                                    {{ result.predicted_class.upper() }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="mini-bar">
+                                    <div class="mini-bar-fill" style="width: {{ result.confidence * 100 }}%;"></div>
+                                </div>
+                                <small>{{ "%.1f"|format(result.confidence * 100) }}%</small>
+                            </td>
+                            <td>{{ "%.3f"|format(result.inference_time) }}</td>
+                            <td>{{ '✅' if result.above_threshold else '⚠️' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        {% if results.errors %}
+        <div class="card">
+            <h3>Errors</h3>
+            {% for error in results.errors %}
+            <div class="error-item">
+                <strong>{{ error.file }}:</strong> {{ error.error }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

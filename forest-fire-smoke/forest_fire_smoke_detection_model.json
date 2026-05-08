@@ -1,0 +1,5 @@
+{
+  "class_names": ["Smoke", "Fire", "Non Fire"],
+  "num_classes": 3,
+  "description": "Forest Fire Smoke detection classes"
+}

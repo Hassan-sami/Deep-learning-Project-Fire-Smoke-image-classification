@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Detection Report{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1><i class="fas fa-chart-bar"></i> Detection Report</h1>
+        <p>Comprehensive overview of all detection activities</p>
+    </div>
+    
+    {% if stats %}
+    <div class="report-stats">
+        <div class="report-card">
+            <i class="fas fa-chart-line" style="font-size: 2em; color: var(--secondary);"></i>
+            <div class="report-value">{{ stats.total_detections }}</div>
+            <div class="stat-label">Total Detections</div>
+        </div>
+        
+        <div class="report-card">
+            <i class="fas fa-percentage" style="font-size: 2em; color: var(--primary);"></i>
+            <div class="report-value safe">{{ "%.1f"|format(stats.average_confidence * 100) }}%</div>
+            <div class="stat-label">Average Confidence</div>
+        </div>
+        
+        <div class="report-card">
+            <i class="fas fa-clock" style="font-size: 2em; color: var(--warning);"></i>
+            <div class="report-value smoke">{{ "%.3f"|format(stats.average_inference_time) }}s</div>
+            <div class="stat-label">Average Time</div>
+        </div>
+        
+        <div class="report-card">
+            <i class="fas fa-exclamation-triangle" style="font-size: 2em; color: var(--danger);"></i>
+            <div class="report-value fire">{{ stats.alert_detections }}</div>
+            <div class="stat-label">Alert Detections</div>
+        </div>
+    </div>
+    
+    {% if stats.class_distribution %}
+    <div class="card">
+        <h2>Class Distribution</h2>
+        <canvas id="classChart" style="max-height: 300px;"></canvas>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const classData = {{ stats.class_distribution|tojson }};
+        createChart('classChart', 'doughnut', 
+            Object.keys(classData), 
+            Object.values(classData)
+        );
+    });
+    </script>
+    {% endif %}
+    
+    {% if recent_detections %}
+    <div class="card">
+        <h2>Recent Detections</h2>
+        <form action="{{ url_for('generate_report') }}" method="POST" style="margin-bottom: 20px;">
+            <select name="report_type">
+                <option value="html">HTML Report</option>
+                <option value="json">JSON Report</option>
+            </select>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-download"></i> Download Report
+            </button>
+        </form>
+        
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Image</th>
+                        <th>Prediction</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detection in recent_detections %}
+                    <tr>
+                        <td>{{ detection.timestamp }}</td>
+                        <td>{{ detection.image }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if detection.prediction == 'fire' %}badge-fire
+                                {% elif detection.prediction == 'smoke' %}badge-smoke
+                                {% else %}badge-safe{% endif %}">
+                                {{ detection.prediction.upper() }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="mini-bar">
+                                <div class="mini-bar-fill" style="width: {{ detection.confidence * 100 }}%;"></div>
+                            </div>
+                            <small>{{ "%.1f"|format(detection.confidence * 100) }}%</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-chart-bar" style="font-size: 64px;"></i>
+        <p>No detection data available yet</p>
+        <a href="{{ url_for('single_image') }}" class="btn btn-primary">
+            <i class="fas fa-image"></i> Start Detecting
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Live Webcam Detection{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1><i class="fas fa-camera"></i> Live Webcam Detection</h1>
+        <p>Real-time fire and smoke detection using your webcam</p>
+    </div>
+    
+    <div class="webcam-container">
+        <video id="webcamVideo" class="webcam-video" autoplay playsinline></video>
+        <canvas id="webcamCanvas" style="display: none;"></canvas>
+        
+        <div id="webcamOverlay" class="webcam-overlay">
+            <p>Starting webcam...</p>
+        </div>
+    </div>
+    
+    <div class="webcam-controls">
+        <button onclick="startWebcam()" class="btn btn-primary">
+            <i class="fas fa-play"></i> Start Webcam
+        </button>
+        <button onclick="stopWebcam()" class="btn btn-danger">
+            <i class="fas fa-stop"></i> Stop Webcam
+        </button>
+    </div>
+    
+    <div class="card" style="margin-top: 20px;">
+        <h3>Instructions</h3>
+        <ul>
+            <li>Click "Start Webcam" to begin detection</li>
+            <li>Ensure good lighting for best results</li>
+            <li>The overlay will show real-time predictions</li>
+            <li>Fire and smoke detections will trigger alerts</li>
+            <li>Click "Stop Webcam" to end the session</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
