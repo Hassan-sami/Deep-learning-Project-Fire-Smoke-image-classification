@@ -3,7 +3,7 @@ fire-smoke-neutral/Fire_smoke.keras
 fire-smoke-neutral/Fire_smoke.h5
 forest-fire-smoke/forest_fire_smoke_detection_model.keras
 forest-fire-smoke/forest_fire_smoke_detection_model.h5
-image-classification-app/models/*
+
 image-classification-app/uploads/*
 image-classification-app/outputs/*
 image-classification-app/logs/*

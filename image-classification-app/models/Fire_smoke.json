@@ -1,0 +1,5 @@
+{
+  "class_names": ["Fire", "Neutral", "Smoke"],
+  "num_classes": 3,
+  "description": "Image fire,smoke and neutral detection classes"
+}
