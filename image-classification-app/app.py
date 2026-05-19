@@ -18,8 +18,8 @@ from flask import (Flask, render_template, request, jsonify,
 
 from config import Config
 from detectors import ForestFireDetector, format_output, get_timestamp
-from services import DetectionLogger, ReportService, EmailService
-
+# from services import DetectionLogger, ReportService, EmailService
+from services import DetectionLogger, ReportService
 # Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -32,7 +32,7 @@ Config.init_directories()
 detector = None
 logger = DetectionLogger(str(Config.LOGS_DIR))
 report_service = ReportService()
-email_service = EmailService(Config.EMAIL_CONFIG)
+# email_service = EmailService(Config.EMAIL_CONFIG)
 
 # Store available models
 available_models = []
@@ -60,14 +60,18 @@ def init_detector(model_path):
     """Initialize or reinitialize the detector"""
     global detector
     try:
+        # Get image size from labels before creating detector
+        from detectors.utils import get_image_size_from_labels
+        img_size = get_image_size_from_labels(model_path)
+        
         detector = ForestFireDetector(
             model_path=model_path,
-            img_size=Config.DEFAULT_IMAGE_SIZE,
+            img_size=img_size,  # Will use None and auto-detect from labels
             confidence_threshold=Config.DEFAULT_CONFIDENCE_THRESHOLD,
             device=Config.DEFAULT_DEVICE,
             enable_logging=True
         )
-        return True, "Model loaded successfully"
+        return True, f"Model loaded successfully (Image size: {detector.img_size}x{detector.img_size})"
     except Exception as e:
         return False, str(e)
 
@@ -81,10 +85,10 @@ def inject_globals():
             'model_path': detector.model_path if detector else None,
             'class_names': detector.class_names if detector else [],
             'confidence_threshold': detector.confidence_threshold if detector else Config.DEFAULT_CONFIDENCE_THRESHOLD,
+            'img_size': detector.img_size if detector else None,
             'metrics': detector.get_metrics() if detector else {}
         } if detector else None,
-        'Config': Config,  # Add this line to make Config available in all templates
-        'default_image_size': Config.DEFAULT_IMAGE_SIZE  # Add this for convenience
+        'Config': Config
     }
 
 # ==================== Routes ====================
@@ -408,20 +412,20 @@ def generate_report():
         mimetype='text/html' if report_type == 'html' else 'application/json'
     )
 
-@app.route('/settings', methods=['GET', 'POST'])
-def settings():
-    """Application settings"""
-    if request.method == 'POST':
-        # Update settings
-        if detector:
-            threshold = float(request.form.get('threshold', Config.DEFAULT_CONFIDENCE_THRESHOLD))
-            device = request.form.get('device', Config.DEFAULT_DEVICE)
+# @app.route('/settings', methods=['GET', 'POST'])
+# def settings():
+#     """Application settings"""
+#     if request.method == 'POST':
+#         # Update settings
+#         if detector:
+#             threshold = float(request.form.get('threshold', Config.DEFAULT_CONFIDENCE_THRESHOLD))
+#             device = request.form.get('device', Config.DEFAULT_DEVICE)
             
-            detector.confidence_threshold = threshold
-            detector.device = device
+#             detector.confidence_threshold = threshold
+#             detector.device = device
         
-        flash('Settings updated successfully', 'success')
-        return redirect(url_for('settings'))
+#         flash('Settings updated successfully', 'success')
+#         return redirect(url_for('settings'))
     
     return render_template(
         'settings.html',

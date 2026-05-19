@@ -31,6 +31,43 @@ def load_labels(model_path):
     
     return class_names, metadata
 
+
+def get_image_size_from_labels(model_path):
+    """Extract image size from labels JSON file"""
+    model_path = Path(model_path)
+    labels_path = model_path.with_suffix('.json')
+    
+    if not labels_path.exists():
+        return None
+    
+    try:
+        with open(labels_path, 'r') as f:
+            labels_data = json.load(f)
+        
+        if isinstance(labels_data, dict):
+            # Check for different possible key names
+            img_size = (labels_data.get('img_size') or 
+                       labels_data.get('image_size') or 
+                       labels_data.get('input_size') or
+                       labels_data.get('size'))
+            
+            if img_size is not None:
+                return int(img_size)
+            
+            # Check for width/height format
+            img_width = labels_data.get('img_width') or labels_data.get('image_width')
+            img_height = labels_data.get('img_height') or labels_data.get('image_height')
+            
+            if img_width is not None and img_height is not None:
+                # Return width (assuming square input, or return tuple)
+                return int(img_width)
+        
+        return None
+    except Exception as e:
+        print(f"Warning: Could not read image size from labels: {e}")
+        return None
+
+
 def format_output(result, format_type='text'):
     """Format detection result for output"""
     if format_type == 'json':

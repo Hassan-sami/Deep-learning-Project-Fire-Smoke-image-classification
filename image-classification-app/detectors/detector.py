@@ -14,33 +14,49 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras import layers
 
 from .preprocessor import ImagePreprocessor
-from .utils import load_labels, generate_detection_id, get_timestamp
+from .utils import load_labels, get_image_size_from_labels, generate_detection_id, get_timestamp
 
 class ForestFireDetector:
     """Enhanced Forest Fire and Smoke Detection Model"""
     
-    def __init__(self, model_path, img_size=64, confidence_threshold=0.5, 
+    def __init__(self, model_path, img_size=None, confidence_threshold=0.5, 
                  device='/CPU:0', enable_logging=True):
         """
         Initialize detector.
         
         Args:
             model_path: Path to model file (.h5 or .keras)
-            img_size: Input image size
+            img_size: Input image size (if None, will try to read from labels JSON)
             confidence_threshold: Minimum confidence for positive detection
             device: TensorFlow device
             enable_logging: Enable detection logging
         """
-        self.img_size = img_size
         self.model_path = model_path
         self.confidence_threshold = confidence_threshold
         self.device = device
         self.enable_logging = enable_logging
         self.model_id = generate_detection_id()
         
-        # Setup components
-        self.preprocessor = ImagePreprocessor(img_size)
+        # Load class names and metadata
         self.class_names, self.labels_metadata = load_labels(model_path)
+        
+        # Determine image size
+        if img_size is None:
+            # Try to get image size from labels JSON
+            detected_size = get_image_size_from_labels(model_path)
+            if detected_size is not None:
+                self.img_size = detected_size
+                print(f"Using image size from labels JSON: {self.img_size}x{self.img_size}")
+            else:
+                # Fallback to default
+                self.img_size = 64
+                print(f"No image size found in labels JSON, using default: {self.img_size}x{self.img_size}")
+        else:
+            self.img_size = img_size
+            print(f"Using specified image size: {self.img_size}x{self.img_size}")
+        
+        # Setup components
+        self.preprocessor = ImagePreprocessor(self.img_size)
         
         # Load model
         self.model = self._load_model()
@@ -54,7 +70,8 @@ class ForestFireDetector:
             'total_time': 0,
             'average_time': 0,
             'class_counts': defaultdict(int),
-            'high_confidence_count': 0
+            'high_confidence_count': 0,
+            'image_size': self.img_size
         }
     
     def _load_model(self):
@@ -68,12 +85,32 @@ class ForestFireDetector:
             except:
                 model = load_model(self.model_path, compile=False)
             
-            # Verify model output
+            # Get model's expected input shape
+            expected_input_shape = model.input_shape
+            
+            # Extract expected size from model
+            if len(expected_input_shape) == 4:  # (batch, height, width, channels)
+                model_height = expected_input_shape[1]
+                model_width = expected_input_shape[2]
+                
+                # Warn if image size doesn't match model input
+                if model_height is not None and model_width is not None:
+                    if model_height != self.img_size or model_width != self.img_size:
+                        print(f"Warning: Configured image size ({self.img_size}x{self.img_size}) "
+                              f"doesn't match model input shape ({model_height}x{model_width})")
+                        print(f"Adjusting image size to match model: {model_height}x{model_width}")
+                        self.img_size = model_height
+                        self.preprocessor = ImagePreprocessor(self.img_size)
+                        self.metrics['image_size'] = self.img_size
+            
+            # Verify model output matches labels
             if model.output_shape[-1] != len(self.class_names):
                 print(f"Warning: Model output ({model.output_shape[-1]}) "
                       f"doesn't match labels ({len(self.class_names)})")
             
             return model
+    
+    # ... rest of the detector code remains the same ...
     
     def predict(self, image_path, threshold=None, augment=False):
         """Predict single image"""

@@ -41,13 +41,15 @@
         </form>
     </div>
     
+    <!-- In the Model Information section -->
     {% if detector_loaded %}
     <div class="card">
         <h2>Model Information</h2>
         <div class="model-info">
             <p><strong>Model Path:</strong> {{ model_path }}</p>
-            <p><strong>Image Size:</strong> {{ default_image_size }}px</p>
+            <p><strong>Image Size:</strong> {{ detector_info.img_size }}x{{ detector_info.img_size }}px</p>
             <p><strong>Classes:</strong> {{ class_names|join(', ') }}</p>
+            <p><strong>Confidence Threshold:</strong> {{ (current_threshold * 100)|int }}%</p>
             <p><strong>Total Predictions:</strong> {{ total_predictions }}</p>
             <p><strong>Average Inference Time:</strong> {{ "%.3f"|format(average_time) }}s</p>
         </div>

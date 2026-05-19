@@ -25,7 +25,7 @@ class Config:
     
     # Detection defaults
     DEFAULT_CONFIDENCE_THRESHOLD = 0.5
-    DEFAULT_IMAGE_SIZE = 64
+    # DEFAULT_IMAGE_SIZE is removed - will be read from model.json
     DEFAULT_FRAME_SKIP = 30
     DEFAULT_DEVICE = '/CPU:0'
     
@@ -55,3 +55,10 @@ class Config:
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
         return directories
+    
+    @staticmethod
+    def get_image_size_from_model(model_path):
+        """Get image size from model's labels JSON"""
+        from detectors.utils import get_image_size_from_labels
+        size = get_image_size_from_labels(model_path)
+        return size if size is not None else 64  # Default fallback
